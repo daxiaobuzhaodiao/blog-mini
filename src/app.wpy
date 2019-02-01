@@ -33,12 +33,14 @@
 
 <script>
 import wepy from 'wepy'
+import 'wepy-async-function'
 
 export default class extends wepy.app {
   config = {
     pages: [
       'pages/index',
-      'pages/user'
+      'pages/user',
+      'pages/auth/login'
     ],
     window: {
       backgroundTextStyle: 'light',
@@ -74,9 +76,10 @@ export default class extends wepy.app {
 
   // 由于我们使用了 WePY 框架，所有小程序的接口都需要使用 wepy 对象调用，例如 wx.login() 就需要使用 wepy.login()。
   onLaunch() {
-    wepy.login().then(res => {
-      console.log('login: ', res)
-    })
+    // // 在小程序中调用 wepy.login() 接口，获取 Code
+    // wepy.login().then(res => {
+    //   console.log('login: ', res)
+    // })
   }
 }
 </script>
