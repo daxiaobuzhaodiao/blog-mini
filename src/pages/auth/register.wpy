@@ -63,28 +63,36 @@
       phone: null,
       // 手机号 input 是否 disabled
       phoneDisabled: false,
-      // 图片验证码 modal 是否显示
+      // 图片验证码 modal 是否显示   默认为隐藏
       captchaModalHidden: true,
       // 用户输入的验证码
       captchaValue: null,
       // 图片验证码 key 及过期时间
       captcha: {},
       // 表单错误
-      errors: {}
+      errors: {},
+      // 短信验证码 key 及 过期时间
+      verificationCode: {}
+    }
+    // 重置注册流程， 初始化 data 数据
+    resetRegister() {
+      this.captchaModalHidden = true
+      this.phoneDisabled = false
+      this.captcha = {}
+      this.verificationCode = {}
+      this.errors = {}
     }
     // 获取图片验证码
     async getCaptchaCode() {
       this.errors.phone = null
-
       // 判断手机号是否正确
       if (!(/^1[34578]\d{9}$/.test(this.phone))) {
         this.errors.phone = ['请输入正确的手机号']
         this.$apply()
         return false
       }
-
       try {
-        // 调用发送验证码接口，参数为手机号
+        // 调用发送图片验证码接口，参数为手机号
         let captchaResponse = await api.request({
           url: 'captchas',
           method: 'POST',
@@ -92,21 +100,18 @@
             phone: this.phone
           }
         })
-
         // 表单错误
         if (captchaResponse.statusCode === 422) {
           this.errors = captchaResponse.data.errors
           this.$apply()
         }
-
-        // 记录 key 和过期时间，打开 modal
+        // 记录图片验证码 key 和过期时间，打开 modal
         if (captchaResponse.statusCode === 201) {
           this.captcha = {
-            key: captchaResponse.data.captcha_key,
-            imageContent: captchaResponse.data.captcha_image_content,
-            expiredAt: Date.parse(captchaResponse.data.expired_at)
+            key: captchaResponse.data.captcha_key, // 图片验证码缓存的 key
+            imageContent: captchaResponse.data.captcha_image_content, // 图片验证码的图片
+            expiredAt: Date.parse(captchaResponse.data.expired_at)  // 图片验证码的过期时间
           }
-
           // 关闭modal
           this.captchaModalHidden = false
           this.$apply()
@@ -128,9 +133,66 @@
       bindCaptchaCodeInput (e) {
         this.captchaValue = e.detail.value
       },
-      // 响应获取图片验证码按钮点击事件
+      // 响应获取图片验证码按钮点击事件  为什么要将 getCaptchaCode() 方法放在外面呢？？？
+      // 因为获取图片验证码的逻辑不只有用户主动触发，也有可能主动调用，
+      // 例如图片验证码输入错误后主动刷新，所以需要在 methods 外部定义一个 getCaptchaCode，方便程序内部调用；
       async tapCaptchaCode() {
         this.getCaptchaCode()
+      },
+      // 发送短信验证码
+      async sendVerificationCode() {
+        if (!this.captchaValue) {
+          this.errors.captchaValue = ['请输入图片验证码']
+          return false
+        }
+        // 检查验证码是否过期
+        if (new Date().getTime() > this.captcha.expiredAt) {
+          wepy.showToast({
+            title: '验证码已过期',
+            icon: 'none',
+            duration: 2000
+          })
+          this.resetRegister()  // 重置
+          return false
+        }
+        // 请求服务器对图片验证码进行验证， 如果验证成功，用户将会收到短信验证码 并且返回 短信验证码的 key 和 过期时间
+        try {
+          let codeResponse = await api.request({
+            url: 'verificationCodes',
+            method: 'POST',
+            data: {
+              captcha_key: this.captcha.key,
+              captcha_code: this.captchaValue
+            }
+          })
+          // 验证码错误
+          if (codeResponse.statusCode === 401) {
+            this.errors.captchaValue = ['图片验证码错误']
+            this.$apply()
+            await this.getCaptchaCode()
+            return false
+          }
+          // 记录 短信验证码 key 和 过期时间
+          if (codeResponse.statusCode === 201) {
+            this.verificationCode = {
+              key: codeResponse.data.key,
+              expiredAt: Date.parse(codeResponse.data.expired_at)
+            }
+            // 关闭 modal
+            this.captchaModalHidden = true
+            // 手机输入框 disabled
+            this.phoneDisabled = true
+            // 清空报错信息
+            this.errors = {}
+            this.$apply()
+          }
+        } catch (err) {
+          console.log(err)
+          wepy.showModal({
+            title: '提示',
+            content: '服务器错误，请联系管理员'
+          })
+        }
       }
     }
   }

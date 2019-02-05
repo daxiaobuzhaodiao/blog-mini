@@ -64,7 +64,7 @@ const refreshToken = async (accessToken) => {
     }
   })
   // 刷新成功，状态吗为 200
-  if(refreshResponse.statusCode === 200){
+  if (refreshResponse.statusCode === 200) {
     // 将 token 及过期时间保存在 storage 中
     wepy.setStorageSync('access_token', refreshResponse.data.access_token)
     wepy.setStorageSync('access_token_expired_at', new Date().getTime() + refreshResponse.data.expired_in * 1000)
@@ -78,15 +78,15 @@ const getToken = async (options) => {
   let accessToken = wepy.getStorageSync('access_token')
   let expiredAt = wepy.getStorageSync('access_token_expired_at')
   // 如果 token 过期了， 则调用刷新 token 的方法
-  if(accessToken && new Date().getTime() > expiredAt){
+  if (accessToken && new Date().getTime() > expiredAt) {
     let refreshResponse = await refreshToken(accessToken)
     // 刷新成功
-    if(refreshResponse.statusCode === 200){
+    if (refreshResponse.statusCode === 200) {
       accessToken = refreshResponse.data.access_token
-    }else{
+    } else {
       // 刷新失败， 调用登陆方法 设置  Token
       let authResponse = await login()
-      if(authResponse.statusCode === 201){
+      if (authResponse.statusCode === 201) {
         accessToken = authResponse.data.access_token
       }
     }
@@ -96,12 +96,12 @@ const getToken = async (options) => {
 
 // 带身份认证的请求
 const authRequest = async (options, showLoading = true) => {
-  if(typeof options === 'string'){
+  if (typeof options === 'string') {
     options = {
       url: options
     }
   }
-  // 获取 token 
+  // 获取 token
   let accessToken = await getToken()
   // 将 token 设置在 header 中
   let header = options.header || {}
@@ -111,7 +111,7 @@ const authRequest = async (options, showLoading = true) => {
 }
 
 // 退出登陆
-const  logout = async (params = {}) => {
+const logout = async (params = {}) => {
   let accessToken = wepy.getStorageSync('access_token')
   // 调用删除 token 接口 让 token 失效
   let logoutResponse = await wepy.request({
@@ -123,7 +123,7 @@ const  logout = async (params = {}) => {
   })
   console.log()
   // 调用接口成功， 则清空缓存
-  if(logoutResponse.statusCode === 204){
+  if (logoutResponse.statusCode === 204) {
     wepy.clearStorage()
   }
   return logoutResponse
