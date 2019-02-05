@@ -34,6 +34,7 @@
 <script>
 import wepy from 'wepy'
 import 'wepy-async-function'
+import api from '@/utils/api'
 
 export default class extends wepy.app {
   config = {
@@ -81,6 +82,41 @@ export default class extends wepy.app {
     // wepy.login().then(res => {
     //   console.log('login: ', res)
     // })
+  }
+
+  // 获取当前用户登陆信息
+  async getCurrentUser() {
+    // 如果用户没有登陆
+    if (!this.checkLogin()) {
+      return null
+    }
+    // 从缓存中获取用户信息
+    let user = wepy.getStorageSync('user')
+
+    try {
+      // 已经登陆但是缓存中没有 user， 请求接口获取
+      if (!user) {
+        let userResponse = await api.authRequest('user')  // 请求服务器的 api.user.show 路由 返回了用户信息
+        // 返回码为 200 则请求成功
+        if (userResponse.statusCode === 200) {
+          user = userResponse.data
+          wepy.setStorageSync('user', user)
+        }
+      }
+    } catch (err) {
+      console.log(err)
+      wepy.showModal({
+        title: '提示',
+        content: '服务器错误，请联系管理员'
+      })
+    }
+    return user
+  }
+
+  // 判断用户是否登陆
+  // 该方法只判断缓存中是否存在 access_token，存在则说明用户已经登录过了，返回 true，否则返回 false
+  checkLogin() {
+    return (wepy.getStorageSync('access_token') !== '')
   }
 }
 </script>

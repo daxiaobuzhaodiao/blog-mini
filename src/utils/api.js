@@ -94,7 +94,7 @@ const getToken = async (options) => {
   return accessToken
 }
 
-// 带身份认证的请求
+// 带身份认证的请求  请求用户信息
 const authRequest = async (options, showLoading = true) => {
   if (typeof options === 'string') {
     options = {
