@@ -129,10 +129,28 @@ const logout = async (params = {}) => {
   return logoutResponse
 }
 
+const uploadFile = async (options = {}) => {
+  // 显示 loading
+  wepy.showLoading({title: '上传中...'})
+  // 获取 token
+  let accessToken = await getToken()
+  // 拼接 url
+  options.url = host + '/' + options.url
+  let header = options.header || {}
+  // 将 token 设置在 token 中
+  header.Authorization = 'Bearer ' + accessToken
+  options.header = header
+  // 开始上传
+  let response = await wepy.uploadFile(options)
+  // 影藏 loading
+  wepy.hideLoading()
+  return response
+}
 export default {
   request,
   login,
   refreshToken,
   authRequest,
-  logout
+  logout,
+  uploadFile
 }
