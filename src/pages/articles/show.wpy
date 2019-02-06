@@ -45,6 +45,32 @@ page{
         <!-- 删除按钮 -->
         <button wx:if="{{ canDelete }}" @tap="deleteArticle" class="weui-btn mini-btn" type="default" size="mini">删除</button>
       </view>
+      <!-- 话题回复 -->
+      <view class="weui-panel weui-panel_access" wx:if="{{ article.reply_count }}">
+        <view class="weui-panel__hd">回复 ({{ article.reply_count }})</view>
+        <view class="weui-panel__bd">
+          <repeat for="{{ article.topFiveReplies.data }}" wx:key="id" index="index" item="reply">
+            <view class="weui-media-box weui-media-box_appmsg" hover-class="weui-cell_active">
+              <navigator class="weui-media-box__hd weui-media-box__hd_in-appmsg" url="/pages/users/show?id={{ reply.user.id }}">
+                <image class="replyer-avatar weui-media-box__thumb" src="{{ reply.user.avatar }}" />
+              </navigator>
+              <view class="weui-media-box__bd weui-media-box__bd_in-appmsg">
+                <view class="weui-media-box__title">{{ reply.user.name }}</view>
+                <view class="weui-media-box__desc"><rich-text nodes="{{ reply.content }}" bindtap="tap"></rich-text></view>
+                <view class="weui-media-box__info">
+                  <view class="weui-media-box__info__meta">{{ reply.created_at_diff }}</view>
+                </view>
+              </view>
+            </view>
+          </repeat>
+        </view>
+        <view class="weui-panel__ft">
+          <navigator class="weui-cell weui-cell_access weui-cell_link" url="/pages/replies/index?article_id={{ article.id }}">
+            <view class="weui-cell__bd">查看全部回复</view>
+            <view class="weui-cell__ft weui-cell__ft_in-access"></view>
+          </navigator>
+        </view>
+      </view>
     </view>
   </view>
 </template>
@@ -78,14 +104,23 @@ page{
         let articleResponse = await api.request({
           url: 'articles/' + id,
           data: {
-            include: 'user,category'
+            include: 'user,category,topFiveReplies.user'
           }
         })
-        let article = articleResponse.data
-        // 格式化 updated_at
-        article.updated_at_diff = util.diffForHumans(article.updated_at)
-        this.article = article
-        this.$apply()
+        if (articleResponse.statusCode === 200) {
+          let article = articleResponse.data
+          article.updated_at_diff = util.diffForHumans(article.updated_at)  // 格式化 updated_at
+          // 处理评论时间的发布时间
+          article.topFiveReplies.data.forEach(function (reply) {
+            reply.created_at_diff = util.diffForHumans(reply.created_at)
+          })
+          this.article = article
+          this.$apply()
+        }
+        if (articleResponse.statusCode === 404) {
+          wepy.navigateBack()
+        }
+        return articleResponse
       } catch (err) {
         console.log(err)
         wepy.showModal({
