@@ -105,14 +105,12 @@
     // 获取分类数据
     async getCategories() {
       let categories = wepy.getStorageSync('categories')
-
       if (!categories) {
         try {
           let categoriesResponse = await api.request('categories')
           if (categoriesResponse.statusCode === 200) {
             categories = categoriesResponse.data.data
-            // 缓存到 sotrage 中
-            wepy.setStorageSync('categories', categories)
+            wepy.setStorageSync('categories', categories) // 缓存到 sotrage 中
           }
         } catch (err) {
           wepy.showModal({
@@ -126,19 +124,15 @@
       this.$apply()
     }
     onLoad() {
-      // 获取分类数据
-      this.getCategories()
-      // 调用组件的 reload 方法
-      this.$invoke('articlelist', 'reload')
+      this.getCategories()  // 获取分类数据
+      this.$invoke('articlelist', 'reload') // 调用组件的 reload 方法
     }
     async onPullDownRefresh() {
-      // 调用组件的 reload 方法
-      await this.$invoke('articlelist', 'reload')
+      await this.$invoke('articlelist', 'reload') // 调用组件的 reload 方法
       wepy.stopPullDownRefresh()
     }
     onReachBottom () {
-      // 调用组件的 loadMore 方法
-      this.$invoke('articlelist', 'loadMore')
+      this.$invoke('articlelist', 'loadMore') // 调用组件的 loadMore 方法
     }
     methods = {
       // 切换分类列表展示
@@ -151,10 +145,13 @@
         this.categoryOpen = false
         this.$apply()
         this.requestData.category_id = this.currentCategoryId
-
-        // 调用组件的 reload 方法
-        this.$invoke('articlelist', 'reload')
+        this.$invoke('articlelist', 'reload') // 调用组件的 reload 方法
       }
+    }
+    onShow() {
+      this.$parent.checkRefreshPages(this.getCurrentPages().pop().route, () => {
+        this.$invoke('articlelist', 'reload')
+      })
     }
   }
 </script>
